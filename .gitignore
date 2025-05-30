@@ -1,2 +1,9 @@
 .env
 sample_audio/
+downloaded_videos/
+extracted_audio/
+transcription_results.xlsx
+transcription_results.json
+*.json
+*.xlsx
+*.pyc

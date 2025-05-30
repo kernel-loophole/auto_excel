@@ -4,16 +4,15 @@ import json
 import os
 import re
 import yt_dlp
-from pathlib import Path
 import logging
-from moviepy import VideoFileClip
-from io import BytesIO
+from moviepy.editor import VideoFileClip
+from app.transcriber.trancribe import transcribe_audio_directory
 
 # Setup logging
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[logging.StreamHandler()]
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    handlers=[logging.StreamHandler()],
 )
 logger = logging.getLogger(__name__)
 
@@ -22,7 +21,9 @@ st.set_page_config(page_title="YouTube to Audio Converter", layout="wide")
 
 # Title and description
 st.title("YouTube to Audio Converter")
-st.markdown("Upload an Excel file containing YouTube links to extract, download, and convert to audio.")
+st.markdown(
+    "Upload an Excel file containing YouTube links to extract, download, and convert to audio."
+)
 
 
 def v2a(input_video_path, output_audio_path):
@@ -30,7 +31,9 @@ def v2a(input_video_path, output_audio_path):
     Converts a video file to an audio file in WAV format.
     """
     try:
-        logger.info(f"Starting video to audio conversion: {input_video_path} to {output_audio_path}")
+        logger.info(
+            f"Starting video to audio conversion: {input_video_path} to {output_audio_path}"
+        )
         if not os.path.exists(input_video_path):
             raise FileNotFoundError(f"Video file not found: {input_video_path}")
         videoclip = VideoFileClip(input_video_path)
@@ -54,7 +57,9 @@ def extract_youtube_links_from_excel(excel_file):
     try:
         df = pd.read_excel(excel_file)
         video_links = []
-        youtube_pattern = r'(https?://(?:www\.)?youtube\.com/watch\?v=[^\s&]+(?:&pp=[^\s]+)?)'
+        youtube_pattern = (
+            r"(https?://(?:www\.)?youtube\.com/watch\?v=[^\s&]+(?:&pp=[^\s]+)?)"
+        )
         for _, row in df.iterrows():
             for col in df.columns:
                 value = str(row[col])
@@ -74,7 +79,7 @@ def save_links_to_json(video_links, json_file_path):
     """
     try:
         json_data = {"youtube_links": video_links}
-        with open(json_file_path, 'w') as f:
+        with open(json_file_path, "w") as f:
             json.dump(json_data, f, indent=2)
         logger.info(f"Saved YouTube links to {json_file_path}")
         return True
@@ -84,8 +89,12 @@ def save_links_to_json(video_links, json_file_path):
         return False
 
 
-def download_and_convert_youtube_videos(video_links, video_dir="downloaded_videos", audio_dir="extracted_audio",
-                                        delete_videos_after_conversion=True):
+def download_and_convert_youtube_videos(
+    video_links,
+    video_dir="downloaded_videos",
+    audio_dir="extracted_audio",
+    delete_videos_after_conversion=True,
+):
     """
     Download YouTube videos and convert them to audio.
     """
@@ -94,15 +103,17 @@ def download_and_convert_youtube_videos(video_links, video_dir="downloaded_video
     results = {"successful": [], "failed": []}
 
     # Normalize video_dir path to avoid double directory issues
-    video_dir = os.path.normpath(video_dir)
+    video_dir = os.path.normpath(video_dir).replace("\\", "/")
 
     ydl_opts = {
-        'outtmpl': os.path.join(video_dir, '%(title)s.%(ext)s'),  # Fixed path handling
-        'format': 'bestvideo+bestaudio/best',
-        'merge_output_format': 'mp4',
-        'ignoreerrors': True,
-        'nooverwrites': True,
-        'quiet': False,
+        "outtmpl": os.path.join(video_dir, "%(title)s.%(ext)s").replace(
+            "\\", "/"
+        ),  # Fixed path handling
+        "format": "bestvideo+bestaudio/best",
+        "merge_output_format": "mp4",
+        "ignoreerrors": True,
+        "nooverwrites": True,
+        "quiet": False,
     }
 
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
@@ -116,15 +127,23 @@ def download_and_convert_youtube_videos(video_links, video_dir="downloaded_video
                     raise Exception("Failed to download video")
 
                 # Construct video filename
-                video_filename = ydl.prepare_filename(info_dict).replace('.webm', '.mp4').replace('.mkv', '.mp4')
-                video_filename = os.path.basename(video_filename)  # Extract only the filename
-                video_path = os.path.join(video_dir, video_filename)
+                video_filename = (
+                    ydl.prepare_filename(info_dict)
+                    .replace(".webm", ".mp4")
+                    .replace(".mkv", ".mp4")
+                )
+                video_filename = os.path.basename(
+                    video_filename
+                )  # Extract only the filename
+                video_path = os.path.join(video_dir, video_filename).replace("\\", "/")
 
                 if not os.path.exists(video_path):
-                    raise FileNotFoundError(f"Video file not found after download: {video_path}")
+                    raise FileNotFoundError(
+                        f"Video file not found after download: {video_path}"
+                    )
 
                 audio_filename = os.path.splitext(video_filename)[0] + ".wav"
-                audio_path = os.path.join(audio_dir, audio_filename)
+                audio_path = os.path.join(audio_dir, audio_filename).replace("\\", "/")
                 logger.info(f"Converting to audio: {video_path} -> {audio_path}")
                 st.write(f"Converting to audio: {audio_path}")
                 v2a(video_path, audio_path)
@@ -164,12 +183,12 @@ if uploaded_file is not None:
                 st.success(f"Saved links to {json_file_path}")
 
                 # Provide download button for JSON file
-                with open(json_file_path, 'rb') as f:
+                with open(json_file_path, "rb") as f:
                     st.download_button(
                         label="Download JSON File",
                         data=f,
                         file_name=json_file_path,
-                        mime="application/json"
+                        mime="application/json",
                     )
 
                 # Step 3: Download and convert videos
@@ -178,9 +197,16 @@ if uploaded_file is not None:
                     video_links,
                     video_dir="downloaded_videos",
                     audio_dir="extracted_audio",
-                    delete_videos_after_conversion=True
+                    delete_videos_after_conversion=True,
                 )
-
+                # Step 4: Transcribe audio files
+                st.subheader("Transcribing Audio Files")
+                transcribe_audio_directory(
+                    directory_path="extracted_audio",
+                    output_excel_path="transcription_results.xlsx",
+                    language_code="en-US",
+                    cleanup_s3=True,
+                )
                 # Display results
                 st.subheader("Processing Summary")
                 st.write(f"Successfully processed: {len(results['successful'])} videos")
@@ -196,10 +222,12 @@ else:
     st.info("Please upload an Excel file to begin.")
 
 # Instructions
-st.markdown("""
+st.markdown(
+    """
 ### Instructions
 1. Upload an Excel file containing YouTube links.
 2. The app will extract the links, save them to a JSON file, download the videos, and convert them to WAV audio.
 3. Download the generated JSON file and check the `extracted_audio` folder for WAV files.
 4. Videos are deleted after conversion to save space.
-""")
+"""
+)

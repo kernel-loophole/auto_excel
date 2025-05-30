@@ -1,4 +1,6 @@
 import os
+import re
+import shutil
 import time
 import boto3
 import pandas as pd
@@ -139,7 +141,11 @@ def transcribe_audio_directory(
 
     for file_path in directory.iterdir():
         if file_path.is_file() and file_path.suffix in audio_extensions:
-            audio_files.append(file_path)
+            # Edit filename to satisfy regular expression pattern: ^[0-9a-zA-Z._-]+
+            new_filename = re.sub(r"[^0-9a-zA-Z._-]", "_", file_path.name)
+            new_file_path = file_path.with_name(new_filename)
+            shutil.move(file_path, new_file_path)
+            audio_files.append(new_file_path)
 
     logger.info(f"Found {len(audio_files)} audio files in {directory_path}")
 
@@ -236,7 +242,7 @@ def main():
     Example usage of the transcribe_audio_directory function.
     """
     # Directory containing audio files
-    audio_directory = "sample_audio"
+    audio_directory = "extracted_audio"
 
     # Output Excel file path
     output_excel = "transcriptions_output.xlsx"
